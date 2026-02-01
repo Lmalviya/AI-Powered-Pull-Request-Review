@@ -3,6 +3,7 @@ from config import settings
 from schemas.gitlab_model import MergeRequestEvent
 from schemas.task_schema import StartPRReviewTask
 from utils import logger, log_execution_time, generate_id
+from queue_manager import queue_manager
 
 class GitLabEventHandler:
     """
@@ -55,6 +56,7 @@ class GitLabEventHandler:
         review_request_id = generate_id()
 
         task = StartPRReviewTask(
+            action="START_PR_REVIEW",
             review_request_id=review_request_id,
             provider="gitlab",
             repo=mr_event.project.path_with_namespace,
@@ -62,6 +64,12 @@ class GitLabEventHandler:
             delivery_id=delivery_id
         )
 
-        # TODO: Actually push 'task.dict()' to the orchestrator_queue via Redis/RabbitMQ
-        logger.info(f"TASK ENQUEUED: START_PR_REVIEW | RequestID: {review_request_id} | Repo: {task.repo} | MR: !{task.pr_number}")
+        # Push to the orchestrator_queue via Redis
+        try:
+            queue_manager.enqueue(settings.orchestrator_queue, task.model_dump())
+            logger.info(f"TASK ENQUEUED: START_PR_REVIEW | RequestID: {review_request_id} | Repo: {task.repo} | MR: !{task.pr_number}")
+        except Exception as e:
+            logger.error(f"Failed to enqueue task: {e}")
+            raise HTTPException(status_code=500, detail="Failed to enqueue task")
+            
         return review_request_id
