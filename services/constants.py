@@ -1,0 +1,13 @@
+# services/orchestrator/constants.py
+ORCHESTRATOR_QUEUE = "orchestrator_queue"
+LLM_QUEUE = "llm_queue"
+GIT_QUEUE = "git_queue"
+
+# chunk states
+PENDING = "PENDING"
+LLM_IN_PROGRESS = "LLM_IN_PROGRESS"
+TOOL_REQUIRED = "TOOL_REQUIRED"
+CONTEXT_READY = "CONTEXT_READY"
+COMMENT_READY = "COMMENT_READY"
+POSTED = "POSTED"
+FAILED = "FAILED"
