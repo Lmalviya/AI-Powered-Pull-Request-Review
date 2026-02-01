@@ -36,7 +36,7 @@ class WorkflowManager:
         return cls._scm_instances[provider_key]
 
     @log_execution_time
-    async def pr_review_workflow(self, payload: Dict[str, Any], scm: BaseOps):
+    async def pr_review_workflow(self, payload: Dict[str, Any]):
         """
         Main PR Review orchestration.
         """
@@ -46,6 +46,8 @@ class WorkflowManager:
         pr_id = payload.get("pr_number")
 
         logger.info(f"Starting review process for {provider} {repo_id}#{pr_id}")
+
+        scm = self.get_scm(provider)
         
         # Init Review Request
         review_req = ReviewRequest(

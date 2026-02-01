@@ -2,10 +2,27 @@ import hmac
 import hashlib
 import json
 import pytest
-from fastapi.testclient import TestClient
-from services.webhook.main import app
-from services.webhook.config import settings
+import os
+import sys
+from unittest.mock import patch, MagicMock
 
+# Add the webhook service directory to sys.path
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "services", "webhook"))
+
+# Set required environment variables before any imports that might trigger Settings validation
+os.environ["GITHUB_WEBHOOK_SECRET"] = "test_github_secret"
+os.environ["GITLAB_WEBHOOK_SECRET"] = "test_gitlab_secret"
+os.environ["REDIS_URL"] = "redis://localhost:6379/0"
+os.environ["ORCHESTRATOR_QUEUE"] = "test_orchestrator_queue"
+
+# Mock queue_manager before it's imported by handlers
+mock_queue = MagicMock()
+# Since we added services/webhook to sys.path, queue_manager is imported as a top-level module
+with patch("queue_manager.queue_manager", mock_queue):
+    from services.webhook.main import app
+    from services.webhook.config import settings
+
+from fastapi.testclient import TestClient
 client = TestClient(app)
 
 def get_signature(body: bytes, secret: str) -> str:
