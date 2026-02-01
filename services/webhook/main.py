@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from .api import github_api, gitlab_api
-from .utils import logger
+from api import github_api, gitlab_api
+from utils import logger
 
 app = FastAPI(
     title="AI Pull Request Reviewer - Webhook Service",

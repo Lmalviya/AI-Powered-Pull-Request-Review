@@ -1,0 +1,14 @@
+.git
+.gitignore
+.venv
+.pdm-python
+.pdm-build
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+tests/
+.vscode/
+README.md
+LICENSE

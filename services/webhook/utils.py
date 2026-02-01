@@ -1,6 +1,7 @@
 import logging
 import time
 import functools
+import uuid
 from typing import Any, Callable
 
 # Central Logging Configuration
@@ -20,12 +21,13 @@ def log_execution_time(func: Callable) -> Callable:
     async def wrapper(*args: Any, **kwargs: Any) -> Any:
         start_time = time.perf_counter()
         try:
-            result = await func(*args, **kwargs)
-            return result
+            return await func(*args, **kwargs)
         finally:
             end_time = time.perf_counter()
             execution_time = end_time - start_time
-import uuid
+            logger.info(f"Function {func.__name__} executed in {execution_time:.4f} seconds")
+            
+    return wrapper
 
 def generate_id() -> str:
     """Generate a unique review request ID."""

@@ -1,10 +1,10 @@
 import hmac
 import hashlib
 from fastapi import HTTPException
-from ..config import settings
-from ..schemas.github_model import PullRequestEvent
-from ..schemas.task_schema import StartPRReviewTask
-from ..utils import logger, log_execution_time, generate_id
+from config import settings
+from schemas.github_model import PullRequestEvent
+from schemas.task_schema import StartPRReviewTask
+from utils import logger, log_execution_time, generate_id
 
 class GitHubEventHandler:
     """
