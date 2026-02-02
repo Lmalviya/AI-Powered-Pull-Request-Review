@@ -7,6 +7,7 @@ from .queue_manager import queue_manager
 from .workflows import workflow_manager
 from .config import settings
 from .utils.logging_utils import setup_logging, get_logger
+from .models import Action
 
 # Configure logging
 setup_logging()
@@ -27,9 +28,9 @@ async def worker_loop():
             action = task.get("action")
             logger.info("Processing action: %s", action)
             
-            if action == "START_PR_REVIEW":
+            if action == Action.START_PR_REVIEW.value:
                 await workflow_manager.pr_review_workflow(task)
-            elif action == "EVALUATE_CHUNK":
+            elif action == Action.EVALUATE_CHUNK.value:
                 await workflow_manager.evaluate_chunk(task)
             else:
                 logger.warning("Unknown action received: %s", action)

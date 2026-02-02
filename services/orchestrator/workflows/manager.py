@@ -66,6 +66,11 @@ class WorkflowManager:
                 asyncio.to_thread(scm.get_pull_request_file_diffs, repo_id, pr_id),
                 _fetch_pr_metadata(scm, repo_id, pr_id)
             )
+            
+            # Update metadata with SHAs
+            review_req.metadata["base_sha"] = base_sha
+            review_req.metadata["head_sha"] = head_sha
+            state_manager.save_review_request(review_req)
         except Exception as e:
             logger.error(f"Failed to fetch PR data: {e}")
             review_req.status = FAILED
