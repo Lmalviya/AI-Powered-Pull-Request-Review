@@ -66,7 +66,7 @@ class GitLabEventHandler:
 
         # Push to the orchestrator_queue via Redis
         try:
-            queue_manager.enqueue(settings.orchestrator_queue, task.model_dump())
+            await queue_manager.enqueue(settings.orchestrator_queue, task.model_dump())
             logger.info(f"TASK ENQUEUED: START_PR_REVIEW | RequestID: {review_request_id} | Repo: {task.repo} | MR: !{task.pr_number}")
         except Exception as e:
             logger.error(f"Failed to enqueue task: {e}")

@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     gitlab_base_url: str = os.getenv("GITLAB_BASE_URL", "https://gitlab.com")
     
     redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    rabbitmq_url: str = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
     orchestrator_queue: str = os.getenv("ORCHESTRATOR_QUEUE")
     
     def __init__(self, **kwargs):

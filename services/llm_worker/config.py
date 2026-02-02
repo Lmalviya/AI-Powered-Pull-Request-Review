@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     
     # Redis Config
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    RABBITMQ_URL: str = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
     ORCHESTRATOR_QUEUE: str = "orchestrator_queue"
     LLM_QUEUE: str = "llm_queue"
     GIT_QUEUE: str = "git_queue"

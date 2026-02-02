@@ -1,0 +1,79 @@
+ ================================================================================
+🚀 AI-Powered Pull Request Reviewer: Webhook Service Documentation
+================================================================================
+
+1. OVERVIEW
+-----------
+The Webhook Service is the entry point (Step 1) of the AI-Powered Code Review system.
+Its primary responsibility is to securely ingest webhooks from GitHub and GitLab,
+validate their authenticity, filter for relevant PR/MR actions, and enqueue a
+processing task for the Orchestrator via RabbitMQ.
+
+2. FEATURES & CAPABILITIES
+--------------------------
+✅ Multi-Provider Support: Unified ingestion for both GitHub and GitLab.
+✅ Security: 
+   - GitHub: Validates HMAC SHA256 signatures using X-Hub-Signature-256.
+   - GitLab: Validates static secret tokens using X-Gitlab-Token.
+✅ Intelligent Filtering: Only triggers for 'opened', 'synchronize' (new commits), 
+   and 'reopened' actions. Ignores labels, comments, etc., but returns 200 OK.
+✅ Performance Tracking: Custom @log_execution_time decorator for every request.
+✅ Idempotency Ready: Captures and passes X-GitHub-Delivery / X-Gitlab-Event-UUID
+   to prevent duplicate processing of the same delivery.
+✅ Tracking: Generates a unique 'review_request_id' (UUID4) for every task.
+✅ RabbitMQ Integration: Uses a dedicated QueueManager to publish persistent tasks.
+
+3. DIRECTORY STRUCTURE (Independent Service Mode)
+-------------------------------------------------
+Location: services/webhook/
+
+├── api/
+│   ├── github_api.py      --> GitHub endpoints & header extraction
+│   └── gitlab_api.py      --> GitLab endpoints & header extraction
+├── handler/
+│   ├── github_handler.py  --> Signature validation & action filtering logic
+│   └── gitlab_handler.py  --> Token validation & action filtering logic
+├── schemas/
+│   ├── github_model.py    --> Pydantic models for GitHub payloads
+│   ├── gitlab_model.py    --> Pydantic models for GitLab payloads
+│   └── task_schema.py     --> Standardized payload for the queue job
+├── main.py                --> FastAPI app entry point
+├── config.py              --> Pydantic-Settings (Env var management)
+├── queue_manager.py       --> RabbitMQ async producer logic
+├── utils.py               --> Central logging, timing decorator, UUID generator
+└── .env                   --> Local development secrets
+
+4. SETUP REQUIREMENTS
+---------------------
+- Python 3.13+
+- Redis Server (For future rate limiting/dedup if needed)
+- RabbitMQ Server (For Message Queueing)
+- Required Environment Variables:
+  - GITHUB_WEBHOOK_SECRET / GITLAB_WEBHOOK_SECRET
+  - RABBITMQ_URL (default: amqp://guest:guest@localhost:5672/)
+  - ORCHESTRATOR_QUEUE (The queue name)
+
+5. QUEUE PAYLOAD (START_PR_REVIEW)
+----------------------------------
+Every valid webhook produces a job with this JSON structure pushed to RabbitMQ:
+{
+  "action": "START_PR_REVIEW",
+  "review_request_id": "uuid-string",
+  "provider": "github | gitlab",
+  "repo": "owner/repo",
+  "pr_number": 123,
+  "delivery_id": "webhook-header-uuid"
+}
+
+6. HOW TO RUN
+-------------
+A. Local Development (PDM):
+   $env:ORCHESTRATOR_QUEUE="orchestrator_queue"
+   pdm run uvicorn main:app --reload
+
+B. Docker Compose (Recommended):
+   docker-compose up redis rabbitmq webhook orchestrator
+
+================================================================================
+STATUS: Integrated with RabbitMQ | Orchestrator Communication Verified
+================================================================================

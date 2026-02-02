@@ -1,0 +1,55 @@
+# LLM Worker Service Documentation
+
+## Overview
+The `llm_worker` is the analytical engine of the AI Review System. It is a stateful service responsible for evaluating code chunks, making decisions about whether more context is needed, and generating final review comments using various Large Language Models (LLMs).
+
+## Key Responsibilities
+1.  **Stateful Code Analysis**: Evaluates unit-of-work "chunks" of code diffs.
+2.  **Conversation Management**: Maintains a multi-turn history for each chunk in Redis, allowing the LLM to "remember" previous context fetches.
+3.  **Multi-Provider Support**: Pluggable architecture supporting OpenAI, Anthropic, and Ollama (local).
+4.  **Action Routing**: Parses LLM intent to either:
+    *   **Request Tool Call**: Ask the `git_worker` for more specific context (files, function definitions).
+    *   **Generate Comment**: Post final feedback to the PR.
+5.  **Queue Consumption**: Listens for tasks on `llm_queue` via **RabbitMQ**.
+
+## Implementation Details
+
+### Core Components
+
+#### 1. Workflow Manager (`workflow.py`)
+*   **Logic**:
+    *   Checks if a conversation exists for the `chunk_id`.
+    *   If no history, builds an initial review prompt using `ReviewRequest` metadata.
+    *   If returning from a tool call (`CONTEXT_READY`), appends the new context to the history as a user message.
+    *   Calls the LLM and parses the JSON response.
+    *   Publishes to `git_queue` (RabbitMQ) for either `TOOL_CALL` or `GIT_COMMENT`.
+
+#### 2. Conversation Manager (`conversation_manager.py`)
+*   **Role**: Manages serialized JSON message histories in Redis under the key `conversation:{review_request_id}:{chunk_id}`.
+*   **TTL**: History persists across the lifecycle of a PR review to enable context-aware follow-ups.
+
+#### 3. LLM Client Factory (`llms/`)
+*   **`factory.py`**: Dynamically initializes the correct client based on the `LLM_PROVIDER` setting.
+*   **`open_ai_client.py`**: Optimized for JSON-mode and deterministic review output.
+*   **`anthropic_client.py`**: Handles Claude's unique system message format and message structure.
+*   **`ollama_client.py`**: Supports local execution (defaults to `llama3`) with raw JSON formatting.
+
+#### 4. Prompt System (`prompts/`)
+*   **`prompt_builder.py`**: Logic to construct the initial data payload (diffs, file paths) and follow-up context messages.
+*   **`reviewer_prompt.py`**: The "instruction manual" for the LLM, defining the JSON schema for responses and the rules for when to ask for tools vs. when to answer.
+
+#### 5. Configuration & Auto-Detection (`config.py`)
+*   **Auto-Detection**: The service automatically selects a provider based on available environment variables with the following priority:
+    1.  **OpenAI** (if `OPENAI_API_KEY` exists)
+    2.  **Anthropic** (if `ANTHROPIC_API_KEY` exists)
+    3.  **Ollama** (Default fallback)
+*   **Default Model**: Defaults to `llama3` for the local provider.
+
+## Current State
+*   **Stateful Iteration**: The worker successfully handles the "LLM asks -> Git fetches -> LLM answers" loop.
+*   **Reliable Messaging**: Fully migrated to RabbitMQ (`aio_pika`) with async iterators.
+*   **JSON Consistency**: All output is strictly JSON-formatted to prevent parsing errors in downstream services.
+
+## Remaining Tasks
+1.  **Multi-Comment Support**: Currently optimized to take the first comment suggested by the LLM per chunk; update to handle full arrays of comments in a single pass.
+2.  **Token Management**: Implement basic token counting to ensure conversations don't exceed model limits during heavy context swapping.

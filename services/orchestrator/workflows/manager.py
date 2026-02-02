@@ -91,7 +91,7 @@ class WorkflowManager:
         for file_chunks in results:
             for chunk in file_chunks:
                 state_manager.save_chunk(chunk)
-                queue_manager.enqueue(ORCHESTRATOR_QUEUE, {
+                await queue_manager.enqueue(ORCHESTRATOR_QUEUE, {
                     "action": "EVALUATE_CHUNK",
                     "chunk_id": chunk.chunk_id
                 })
@@ -125,7 +125,7 @@ class WorkflowManager:
             state_manager.save_chunk(chunk)
             
             # Enqueue to LLM Queue
-            queue_manager.enqueue(LLM_QUEUE, {
+            await queue_manager.enqueue(LLM_QUEUE, {
                 "chunk_id": chunk_id,
                 "review_request_id": chunk.review_request_id,
                 "diff_snippet": chunk.diff_snippet,

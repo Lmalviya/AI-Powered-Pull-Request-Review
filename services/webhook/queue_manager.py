@@ -1,18 +1,41 @@
 import json
-import redis
+import asyncio
+import aio_pika
 from config import settings
+from utils import logger
 
 class QueueManager:
     def __init__(self):
-        self.redis = redis.from_url(settings.redis_url, decode_responses=True)
+        self.url = settings.rabbitmq_url
+        self.connection = None
+        self.channel = None
 
-    def enqueue(self, queue_name: str, payload: dict):
-        self.redis.lpush(queue_name, json.dumps(payload))
+    async def connect(self):
+        if not self.connection or self.connection.is_closed:
+            try:
+                self.connection = await aio_pika.connect_robust(self.url)
+                self.channel = await self.connection.channel()
+                logger.info("Connected to RabbitMQ")
+            except Exception as e:
+                logger.error(f"Failed to connect to RabbitMQ: {e}")
+                raise e
 
-    def dequeue(self, queue_name: str, timeout: int = 5):
-        data = self.redis.brpop(queue_name, timeout=timeout)
-        if data:
-            return json.loads(data[1])
-        return None
+    async def enqueue(self, queue_name: str, payload: dict):
+        if not self.channel or self.channel.is_closed:
+            await self.connect()
+
+        # Ensure queue exists
+        queue = await self.channel.declare_queue(queue_name, durable=True)
+        
+        message_body = json.dumps(payload).encode()
+        message = aio_pika.Message(
+            body=message_body,
+            delivery_mode=aio_pika.DeliveryMode.PERSISTENT
+        )
+        
+        await self.channel.default_exchange.publish(
+            message,
+            routing_key=queue_name
+        )
 
 queue_manager = QueueManager()

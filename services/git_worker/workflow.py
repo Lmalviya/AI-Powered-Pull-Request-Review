@@ -161,7 +161,7 @@ class WorkflowManager:
 
             # Enqueue back to Orchestrator for re-evaluation
             from .queue_manager import queue_manager
-            queue_manager.enqueue(settings.ORCHESTRATOR_QUEUE, {
+            await queue_manager.enqueue(settings.ORCHESTRATOR_QUEUE, {
                 "action": "EVALUATE_CHUNK", 
                 "chunk_id": chunk_id
             })

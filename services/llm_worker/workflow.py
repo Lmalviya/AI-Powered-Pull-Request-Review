@@ -94,7 +94,7 @@ class WorkflowManager:
                 self._update_chunk(chunk)
                 
                 # Enqueue to GIT_QUEUE for tool execution
-                queue_manager.enqueue(settings.GIT_QUEUE, {
+                await queue_manager.enqueue(settings.GIT_QUEUE, {
                     "action": Action.TOOL_CALL.value,
                     "chunk_id": chunk_id
                 })
@@ -112,7 +112,7 @@ class WorkflowManager:
                     chunk.status = ChunkStatus.COMMENT_READY
                     self._update_chunk(chunk)
                     
-                    queue_manager.enqueue(settings.GIT_QUEUE, {
+                    await queue_manager.enqueue(settings.GIT_QUEUE, {
                         "action": Action.GIT_COMMENT.value,
                         "chunk_id": chunk_id
                     })

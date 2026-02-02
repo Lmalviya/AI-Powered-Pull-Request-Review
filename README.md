@@ -18,7 +18,7 @@ An intelligent, rigorous, and automated code review agent that acts as a senior 
 
 ## 🏗 System Architecture
 
-The system is built as a distributed microservices architecture using **Python `asyncio`** and **Redis** for high-throughput capability.
+The system is built as a distributed microservices architecture using **Python `asyncio`**, **RabbitMQ** (for reliable message passing), and **Redis** (for state persistence).
 
 ### 1. Webhook Service (`services/webhook/`)
 *   **Role**: The secure Entry Point.
@@ -54,6 +54,7 @@ The system is built as a distributed microservices architecture using **Python `
 ### Prerequisites
 *   **Python**: 3.13+
 *   **Redis**: Running locally or via Docker.
+*   **RabbitMQ**: Running locally or via Docker (Management Plugin enabled).
 *   **PDM**: Python Dependency Manager (`pip install -U pdm`).
 *   **Docker** (Optional but recommended).
 
@@ -77,6 +78,9 @@ The system is built as a distributed microservices architecture using **Python `
     ```bash
     # Redis
     REDIS_URL=redis://localhost:6379/0
+    
+    # RabbitMQ
+    RABBITMQ_URL=amqp://guest:guest@localhost:5672/
 
     # Git Provider (Choose one or both)
     GITHUB_TOKEN=ghp_...
