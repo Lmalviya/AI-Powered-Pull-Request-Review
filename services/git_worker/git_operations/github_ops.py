@@ -1,6 +1,7 @@
 import requests
 import logging
 import os
+import base64
 from typing import List, Dict, Any
 from ..config import settings
 from .base_ops import BaseOps
@@ -57,3 +58,16 @@ class GithubOps(BaseOps):
         self._request("POST", f"repos/{repo_id}/pulls/{pr_id}/comments", json=data)
         return True
 
+    def get_file_content(self, repo_id: str, file_path: str, ref: str) -> str:
+        """
+        Fetch file content from GitHub.
+        """
+        endpoint = f"repos/{repo_id}/contents/{file_path.lstrip('/')}?ref={ref}"
+        response = self._request("GET", endpoint)
+        data = response.json()
+        
+        content = data.get("content", "")
+        if data.get("encoding") == "base64":
+            content = base64.b64decode(content).decode("utf-8")
+            
+        return content

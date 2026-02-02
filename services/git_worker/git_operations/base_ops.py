@@ -11,3 +11,9 @@ class BaseOps(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def get_file_content(self, repo_id: str, file_path: str, ref: str) -> str:
+        """
+        Fetch the content of a file at a specific reference (commit/branch).
+        """
+        raise NotImplementedError

@@ -30,15 +30,12 @@ class GitlabOps(BaseOps):
     def post_pr_comment(self, repo_id: str, pr_id: int, commit_sha: str, file: str, line: int, body: str) -> bool:
         """
         Post a comment on a specific line of a Merge Request.
-        Note: Simple version using commit comments associated with the MR.
-        For full MR discussions, more complex position data is required.
         """
         endpoint = f"projects/{repo_id}/merge_requests/{pr_id}/discussions"
-        # Simplest form of position for GitLab
         data = {
             "body": body,
             "position": {
-                "base_sha": commit_sha, # This might need to be the actual base
+                "base_sha": commit_sha,
                 "head_sha": commit_sha,
                 "start_sha": commit_sha,
                 "new_path": file,
@@ -48,4 +45,13 @@ class GitlabOps(BaseOps):
         }
         self._request("POST", endpoint, json=data)
         return True
-    
+
+    def get_file_content(self, repo_id: str, file_path: str, ref: str) -> str:
+        """
+        Fetch file content from GitLab.
+        """
+        import urllib.parse
+        encoded_path = urllib.parse.quote(file_path, safe='')
+        endpoint = f"projects/{repo_id}/repository/files/{encoded_path}/raw?ref={ref}"
+        response = self._request("GET", endpoint)
+        return response.text
