@@ -23,7 +23,7 @@ The system is built as a distributed microservices architecture using **Python `
 ### 1. Webhook Service (`services/webhook/`)
 *   **Role**: The secure Entry Point.
 *   **Function**: Ingests hooks, validates SHA256 signatures (GitHub) or Tokens (GitLab), and filters for relevant events (`opened`, `synchronize`).
-*   **Output**: Pushes `START_PR_REVIEW` tasks to Redis.
+*   **Output**: Pushes `START_PR_REVIEW` tasks to RabbitMQ.
 
 ### 2. Orchestrator Service (`services/orchestrator/`)
 *   **Role**: The Workflow Manager.
@@ -52,7 +52,7 @@ The system is built as a distributed microservices architecture using **Python `
 ## 🚀 Getting Started
 
 ### Prerequisites
-*   **Python**: 3.13+
+*   **Python**: 3.12+
 *   **Redis**: Running locally or via Docker.
 *   **RabbitMQ**: Running locally or via Docker (Management Plugin enabled).
 *   **PDM**: Python Dependency Manager (`pip install -U pdm`).
@@ -82,9 +82,11 @@ The system is built as a distributed microservices architecture using **Python `
     # RabbitMQ
     RABBITMQ_URL=amqp://guest:guest@localhost:5672/
 
-    # Git Provider (Choose one or both)
+    # Git Provider Tokens (Choose one or both)
+    # Note: GITHUB_TOKEN serves dual purpose:
+    #   1. Webhook signature validation (replaces GITHUB_WEBHOOK_SECRET)
+    #   2. GitHub API authentication for fetching PRs and posting comments
     GITHUB_TOKEN=ghp_...
-    GITHUB_WEBHOOK_SECRET=your_secret
     GITLAB_TOKEN=glpat_...
 
     # LLM Provider (Examples)
@@ -122,11 +124,17 @@ The entire system is containerized.
     ```
 
 This spins up:
-- Redis (Alpine)
-- Webhook Service (Port 8000)
-- Orchestrator Worker
-- LLM Worker
-- Git Worker
+- **Redis** (Alpine) - Port 6379
+- **RabbitMQ** - Ports 5672 (AMQP), 15672 (Management UI)
+- **Webhook Service** - Port 8000
+- **Orchestrator Worker**
+- **LLM Worker**
+- **Git Worker**
+
+**Access Points:**
+- Webhook endpoint: `http://localhost:8000/webhook/github` or `/webhook/gitlab`
+- RabbitMQ Management UI: `http://localhost:15672` (guest/guest)
+- Redis: `localhost:6379`
 
 ---
 

@@ -45,13 +45,17 @@ Location: services/webhook/
 
 4. SETUP REQUIREMENTS
 ---------------------
-- Python 3.13+
+- Python 3.12+
 - Redis Server (For future rate limiting/dedup if needed)
 - RabbitMQ Server (For Message Queueing)
 - Required Environment Variables:
-  - GITHUB_WEBHOOK_SECRET / GITLAB_WEBHOOK_SECRET
+  - GITHUB_TOKEN / GITLAB_TOKEN (dual purpose: webhook validation + API auth)
   - RABBITMQ_URL (default: amqp://guest:guest@localhost:5672/)
   - ORCHESTRATOR_QUEUE (The queue name)
+  
+  Note: GITHUB_TOKEN replaces GITHUB_WEBHOOK_SECRET - it serves both:
+    1. Webhook signature validation (HMAC SHA256)
+    2. GitHub API authentication
 
 5. QUEUE PAYLOAD (START_PR_REVIEW)
 ----------------------------------
