@@ -1,0 +1,56 @@
+# Orchestrator Service: Detailed Architecture & Features
+
+The Orchestrator is the central "workflow brain" of the AI-Powered Pull Request Review system. It processes incoming PR events, filters noise, chunks code changes, and manages the lifecycle of a review request.
+
+## 1. Core Features
+- **State Machine Management**: Enforces valid transitions for chunks (PENDING -> LLM_IN_PROGRESS -> etc.).
+- **Multi-Provider Support**: Seamlessly handles GitHub and GitLab via a Provider Registry.
+- **Parallel Processing**: Uses `asyncio.gather` for parallel file processing and metadata fetching.
+- **Reliable Persistence**: Uses Redis to store review states `ReviewRequest` and `Chunk` metadata.
+- **Reliable Messaging**: Uses **RabbitMQ** for robust task distribution (Ack protocols).
+- **Observability**: Centralized logging and decorators to track execution time of critical operations.
+
+## 2. File Filtering Strategy
+The system uses a two-tier filtering approach to ensure the LLM only reviews meaningful changes:
+
+### A. Relevancy Filter (`utils/filter_utils.py`)
+- Checks the file extension against an exclusion list (e.g., skips `.map`, `.json`, `.lock`, images, etc.).
+- Skips specific directories (e.g., `node_modules`, `tests`, `migrations`).
+- Defined via `Settings` in `config.py`.
+
+### B. Semantic Filter (`utils/semantic_filter.py`)
+- Uses **Tree-sitter AST Parsing** to compare the "before" and "after" state of a file.
+- It extracts semantic tokens (identifiers, keywords, operators) and ignores comments/whitespace.
+- **Logic**: If the semantic tokens haven't changed, the file is skipped even if the raw text changed (e.g., adding a comment).
+
+## 3. Diff Chunking Logic (`utils/hunk_processor.py`)
+Large PRs are broken down into manageable pieces to keep the LLM focused and avoid context window limits.
+- **Hunk Extraction**: Parses the Unified Diff format (`@@ -L,l +L,l @@`).
+- **Focus Chunks**: Splitting large patches into smaller "chunks" (default: ~10 lines of changes).
+- **Metadata Tracking**: Each chunk records its `start_line` and `end_line` for accurate inline commenting later.
+
+## 4. Component Map (Directory Structure)
+- `main.py`: Entry point; runs the worker loop listening to `orchestrator_queue`.
+- `workflows/`:
+    - `manager.py`: The `WorkflowManager` class (DI Container) that coordinates workflows.
+    - `pr_review_helpers.py`: Parallel logic for processing files and creating chunks.
+    - `registry.py`: Map of provider names to their Implementation classes.
+    - `constants.py`: Centralized queue names and statuses.
+- `git_operation/`: Implementation for SCM APIs (GitHub, GitLab) following `BaseOps`.
+- `utils/`:
+    - `logging_utils.py`: Centralized logging and time-tracking decorators.
+    - `hunk_processor.py`: Regex-based diff parser and chunker.
+    - `semantic_filter.py`: AST-based noise reduction.
+- `state.py`: Redis wrapper for Pydantic models.
+- `queue_manager.py`: **RabbitMQ** async producer/consumer logic (`aio_pika`).
+
+## 5. Typical Workflow Flow (`START_PR_REVIEW`)
+1.  **Initialize**: Create `ReviewRequest` in Redis.
+2.  **Fetch**: Parallelly fetch the file list and PR metadata (Base/Head SHAs). Storing these SHAs in `ReviewRequest` is critical for downstream workers.
+3.  **Filter**: Loop through files, skipping non-code or non-semantic changes.
+4.  **Chunk**: Split remaining patches into small hunks.
+5.  **Enqueue**: Save each `Chunk` to Redis and publish a task to `ORCHESTRATOR_QUEUE` (RabbitMQ) with action `EVALUATE_CHUNK`.
+6.  **Dispatch**: The worker consumes `EVALUATE_CHUNK`, updates status to `LLM_IN_PROGRESS`, and publishes it to the `LLM_QUEUE`.
+
+## 6. Feedback Loop Support
+The Orchestrator also handles `EVALUATE_CHUNK` tasks returning from the **Git Worker** (status `CONTEXT_READY`). In this case, it simply routes them back to the **LLM Worker**, closing the loop for tool-use scenarios.

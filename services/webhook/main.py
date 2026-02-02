@@ -15,6 +15,8 @@ app.include_router(gitlab_api.router, tags=["GitLab Webhooks"])
 @app.on_event("startup")
 async def startup_event():
     logger.info("Webhook service is starting up...")
+    from queue_manager import queue_manager
+    await queue_manager.connect()
 
 @app.get("/health")
 async def health_check():

@@ -12,12 +12,26 @@ services:
       timeout: 3s
       retries: 5
 
+  rabbitmq:
+    build:
+      context: .
+      dockerfile: docker/rabbitmq/Dockerfile
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   webhook:
     build:
       context: .
       dockerfile: docker/webhook/Dockerfile
     environment:
       - REDIS_URL=redis://redis:6379/0
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
       - ORCHESTRATOR_QUEUE=orchestrator_queue
     env_file:
       - services/webhook/.env
@@ -26,6 +40,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   orchestrator:
     build:
@@ -33,10 +49,13 @@ services:
       dockerfile: docker/orchestrator/Dockerfile
     environment:
       - REDIS_URL=redis://redis:6379/0
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
     env_file:
       - services/orchestrator/.env
     depends_on:
       redis:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
   llm_worker:
@@ -45,10 +64,13 @@ services:
       dockerfile: docker/llm_worker/Dockerfile
     environment:
       - REDIS_URL=redis://redis:6379/0
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
     env_file:
       - services/llm_worker/.env
     depends_on:
       redis:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
   git_worker:
@@ -57,8 +79,11 @@ services:
       dockerfile: docker/git_worker/Dockerfile
     environment:
       - REDIS_URL=redis://redis:6379/0
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
     env_file:
       - services/git_worker/.env
     depends_on:
       redis:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy

@@ -1,0 +1,61 @@
+# Git Worker Service Documentation
+
+## Overview
+The `git_worker` service acts as the bridge between the AI Review System and external Source Control Management (SCM) providers like GitHub and GitLab. Its primary role is to execute "side-effect" operations that interact with the outside world, specifically posting comments and fetching additional code context.
+
+## Key Responsibilities
+1.  **External System Interaction**: It is the only service authorized to write to the user's PR/MR.
+2.  **Inline Comment Posting**: Takes LLM evaluation results and posts them as inline comments on specific lines of code.
+3.  **Idempotency Checks**: Ensures that the same comment is not posted multiple times for the same code chunk.
+4.  **Context Fetching (Tool Execution)**: Fetches additional file contents or definitions when requested by the orchestrator/LLM.
+5.  **Queue Consumption**: Consumes tasks from `git_queue` via **RabbitMQ**.
+
+## Implementation Details
+
+### Core Components
+
+#### 1. Workflow Manager (`workflow.py`)
+*   **Role**: Coordinates the business logic for processing tasks.
+*   **Key Methods**:
+    *   `git_inline_comment(payload)`:
+        *   Fetches the `Chunk` and `ReviewRequest` from Redis.
+        *   **Optimization**: Fetches `ReviewRequest` once to get `repo_id`, `pr_id`, `provider`, and `head_sha`.
+        *   **Idempotency**: Generates a SHA256 hash of `(filename + line_number + comment_body)`. Checks Redis (`posted:{hash}`) to prevent duplicates.
+        *   Calls the appropriate SCM adapter to post the comment.
+        *   Updates Chunk status to `POSTED` or `FAILED`.
+    *   `tool_call(payload)`:
+        *   Executes requests for additional context (e.g., `read_file`, `get_file_structure`).
+        *   Uses the SCM adapter to fetch real content from the repository at the specific `head_sha`.
+        *   Stores the result in `chunk.metadata["tool_output"]`.
+        *   **Route Back**: Enqueues an `EVALUATE_CHUNK` task back to `orchestrator_queue` (RabbitMQ) so the LLM can re-evaluate with new context.
+
+#### 2. SCM Adapters (`git_operations/`)
+*   **`base_ops.py`**: Defines the interface. Includes `post_pr_comment` and `get_file_content`.
+*   **`github_ops.py`**: 
+    *   Implements `post_pr_comment` using GitHub REST API.
+    *   Implements `get_file_content` using GitHub Contents API (decodes Base64).
+*   **`gitlab_ops.py`**: 
+    *   Implements `post_pr_comment` using GitLab Discussions API (handles position objects).
+    *   Implements `get_file_content` via Repository Files API.
+
+#### 3. Data Models (`models.py`)
+*   Aligned with Orchestrator models.
+*   **Chunk**: Added `line_number`, `comment_body`, and `idempotency_hash`.
+*   **ReviewRequest**: specific metadata fields for `base_sha` and `head_sha`.
+
+#### 4. Entry Point (`main.py`)
+*   Configured to listen strictly to `git_queue`.
+*   Dispatches tasks based on `Action` type (`GIT_COMMENT` or `TOOL_CALL`).
+
+## Current Status
+*   **Reliable Messaging**: Fully migrated to RabbitMQ (`aio_pika`) with async iterators.
+*   **Tooling**: Fully operational. The worker can now "read" the repo on behalf of the LLM.
+*   **Idempotency**: Hash-based deduplication is active to prevent spam.
+
+## Remaining Tasks / TODOs
+1.  **Error Handling**:
+    *   Add specific handling for SCM Rate Limits (e.g., GitHub 403 Secondary Rate Limit).
+    *   Implement exponential backoff for transient network failures.
+2.  **Testing**:
+    *   Add unit tests for `workflow.py` mocking the Redis and SCM layers.
+    *   Add integration tests with a mock Git server.
