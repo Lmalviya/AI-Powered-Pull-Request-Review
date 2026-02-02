@@ -34,5 +34,5 @@ class ReviewRequest(BaseModel):
 
 
 class Action(str, Enum):
-    START_PR_REVIEW = "START_PR_REVIEW"
-    EVALUATE_CHUNK = "EVALUATE_CHUNK"
+    GIT_COMMENT = "GIT_COMMENT"
+    TOOL_CALL = "TOOL_CALL"
