@@ -1,5 +1,5 @@
 # Use Python 3.13 slim image
-FROM python:3.13-slim
+FROM python:3.12-slim
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -18,13 +18,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN pip install --no-cache-dir pdm
 
 # Copy dependency files
-COPY pyproject.toml pdm.lock ./
+COPY pyproject.toml ./
 
 # Install dependencies (without installing the project itself)
-RUN pdm install --check --prod --no-editable --no-self
+RUN pdm install --prod --no-editable --no-self
 
-# Copy the webhook service code
-COPY services/webhook/ .
+# Copy the entire services directory to maintain package structure
+COPY services /app/services
 
 # Expose the port the app runs on
 EXPOSE 8000
@@ -34,4 +34,4 @@ HEALTHCHECK --interval=30s --timeout=3s \
     CMD curl -f http://localhost:8000/health || exit 1
 
 # Command to run the application
-CMD ["pdm", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["pdm", "run", "uvicorn", "services.webhook.main:app", "--host", "0.0.0.0", "--port", "8000"]

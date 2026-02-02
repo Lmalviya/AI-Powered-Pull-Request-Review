@@ -17,8 +17,8 @@
             "cwd": "${workspaceFolder}/services/webhook",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/services/webhook",
-                "GITHUB_WEBHOOK_SECRET": "test_secret",
-                "GITLAB_WEBHOOK_SECRET": "test_secret"
+                "GITHUB_TOKEN": "your_github_token_here",
+                "GITLAB_TOKEN": "your_gitlab_token_here"
             },
             "jinja": true,
             "justMyCode": true
@@ -35,8 +35,8 @@
             "cwd": "${workspaceFolder}",
             "env": {
                 "PYTHONPATH": "${workspaceFolder};${workspaceFolder}/services/webhook",
-                "GITHUB_WEBHOOK_SECRET": "test_secret",
-                "GITLAB_WEBHOOK_SECRET": "test_secret"
+                "GITHUB_TOKEN": "your_github_token_here",
+                "GITLAB_TOKEN": "your_gitlab_token_here"
             },
             "console": "integratedTerminal",
             "justMyCode": true

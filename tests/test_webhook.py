@@ -10,8 +10,8 @@ from unittest.mock import patch, MagicMock
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "services", "webhook"))
 
 # Set required environment variables before any imports that might trigger Settings validation
-os.environ["GITHUB_WEBHOOK_SECRET"] = "test_github_secret"
-os.environ["GITLAB_WEBHOOK_SECRET"] = "test_gitlab_secret"
+os.environ["GITHUB_TOKEN"] = "your_github_token_here"
+os.environ["GITLAB_TOKEN"] = "your_gitlab_token_here"
 os.environ["REDIS_URL"] = "redis://localhost:6379/0"
 os.environ["ORCHESTRATOR_QUEUE"] = "test_orchestrator_queue"
 

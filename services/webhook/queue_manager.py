@@ -1,8 +1,8 @@
 import json
 import asyncio
 import aio_pika
-from config import settings
-from utils import logger
+from .config import settings
+from .utils import logger
 
 class QueueManager:
     def __init__(self):

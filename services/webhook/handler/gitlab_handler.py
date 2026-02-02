@@ -1,9 +1,9 @@
 from fastapi import HTTPException
-from config import settings
-from schemas.gitlab_model import MergeRequestEvent
-from schemas.task_schema import StartPRReviewTask
-from utils import logger, log_execution_time, generate_id
-from queue_manager import queue_manager
+from ..config import settings
+from ..schemas.gitlab_model import MergeRequestEvent
+from ..schemas.task_schema import StartPRReviewTask
+from ..utils import logger, log_execution_time, generate_id
+from ..queue_manager import queue_manager
 
 class GitLabEventHandler:
     """
@@ -15,15 +15,15 @@ class GitLabEventHandler:
         """
         Verify that the X-Gitlab-Token matches the configured secret.
         """
-        if not settings.gitlab_webhook_secret:
-            logger.error("GITLAB_WEBHOOK_SECRET is not configured in settings")
+        if not settings.gitlab_token:
+            logger.error("GITLAB_TOKEN is not configured in settings")
             raise HTTPException(status_code=500, detail="Server configuration error")
 
         if not token_header:
             logger.warning("Missing X-Gitlab-Token header")
             return False
             
-        return token_header == settings.gitlab_webhook_secret
+        return token_header == settings.gitlab_token
 
     @classmethod
     @log_execution_time

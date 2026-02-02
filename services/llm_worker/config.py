@@ -3,8 +3,8 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # Git Provider Config
-    GITHUB_TOKEN: str = os.getenv("GITHUB_TOKEN", "")
-    GITLAB_TOKEN: str = os.getenv("GITLAB_TOKEN", "")
+    GITHUB_TOKEN: str = os.getenv("GITHUB_TOKEN")
+    GITLAB_TOKEN: str = os.getenv("GITLAB_TOKEN")
     GITHUB_BASE_URL: str = os.getenv("GITHUB_BASE_URL", "https://api.github.com")
     GITLAB_BASE_URL: str = os.getenv("GITLAB_BASE_URL", "https://gitlab.com/api/v4")
     

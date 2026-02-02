@@ -1,11 +1,11 @@
 import hmac
 import hashlib
 from fastapi import HTTPException
-from config import settings
-from schemas.github_model import PullRequestEvent
-from schemas.task_schema import StartPRReviewTask
-from utils import logger, log_execution_time, generate_id
-from queue_manager import queue_manager
+from ..config import settings
+from ..schemas.github_model import PullRequestEvent
+from ..schemas.task_schema import StartPRReviewTask
+from ..utils import logger, log_execution_time, generate_id
+from ..queue_manager import queue_manager
 
 class GitHubEventHandler:
     """
@@ -16,10 +16,9 @@ class GitHubEventHandler:
     def verify_signature(body: bytes, signature_header: str) -> bool:
         """
         Verify that the webhook signature matches the expected signature 
-        calculated using the secret.
         """
-        if not settings.github_webhook_secret:
-            logger.error("GITHUB_WEBHOOK_SECRET is not configured in settings")
+        if not settings.github_token:
+            logger.error("GITHUB_TOKEN is not configured in settings")
             raise HTTPException(status_code=500, detail="Server configuration error")
 
         if not signature_header:
@@ -33,12 +32,16 @@ class GitHubEventHandler:
         
         received_signature = signature_header[len(expected_prefix):]
         computed_signature = hmac.new(
-            key=settings.github_webhook_secret.encode("utf-8"),
+            key=settings.github_token.encode("utf-8"),
             msg=body,
             digestmod=hashlib.sha256
         ).hexdigest()
 
-        return hmac.compare_digest(received_signature, computed_signature)
+        if not hmac.compare_digest(received_signature, computed_signature):
+            logger.warning(f"Signature Mismatch! Received: {received_signature} | Computed: {computed_signature} | Secret Len: {len(settings.github_webhook_secret)}")
+            return False
+
+        return True
 
     @classmethod
     @log_execution_time

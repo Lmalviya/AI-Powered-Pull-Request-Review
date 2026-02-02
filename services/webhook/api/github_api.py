@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, HTTPException, Header
 from typing import Optional
-from handler.github_handler import GitHubEventHandler
-from utils import logger, log_execution_time
+from ..handler.github_handler import GitHubEventHandler
+from ..utils import logger, log_execution_time
 
 router = APIRouter(prefix="/webhook")
 

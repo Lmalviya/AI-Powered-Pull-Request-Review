@@ -1,6 +1,6 @@
+from .api import github_api, gitlab_api
+from .utils import logger
 from fastapi import FastAPI
-from api import github_api, gitlab_api
-from utils import logger
 
 app = FastAPI(
     title="AI Pull Request Reviewer - Webhook Service",
@@ -15,7 +15,7 @@ app.include_router(gitlab_api.router, tags=["GitLab Webhooks"])
 @app.on_event("startup")
 async def startup_event():
     logger.info("Webhook service is starting up...")
-    from queue_manager import queue_manager
+    from .queue_manager import queue_manager
     await queue_manager.connect()
 
 @app.get("/health")

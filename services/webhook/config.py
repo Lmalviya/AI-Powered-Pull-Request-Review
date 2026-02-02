@@ -2,8 +2,8 @@ import os
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    github_webhook_secret: str = os.getenv("GITHUB_WEBHOOK_SECRET", "")
-    gitlab_webhook_secret: str = os.getenv("GITLAB_WEBHOOK_SECRET", "")
+    github_token: str = os.getenv("GITHUB_TOKEN")
+    gitlab_token: str = os.getenv("GITLAB_TOKEN")
     
     github_base_url: str = os.getenv("GITHUB_BASE_URL", "https://api.github.com")
     gitlab_base_url: str = os.getenv("GITLAB_BASE_URL", "https://gitlab.com")
